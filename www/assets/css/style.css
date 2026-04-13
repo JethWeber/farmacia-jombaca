@@ -1,0 +1,263 @@
+/* ==============================================
+   style.css - Farmácia Jombaca
+   Versão com Bootstrap 5 + customizações
+   ============================================== */
+
+:root {
+    --verde-primario:   #198754;     /* Verde principal dos botões e destaques */
+    --verde-escuro:     #146c43;     /* Verde mais escuro para hover */
+    --verde-claro:      #28a745;     /* Verde mais claro para fundos leves */
+    --verde-muito-claro:#d4edda;     /* Fundo verde suave */
+    --cinza-escuro:     #343a40;     /* Rodapé */
+    --cinza-claro:      #6c757d;
+    --laranja-destaque: #fd7e14;     /* Se quiser usar em promoções */
+    --branco:           #ffffff;
+    --preto:            #212529;
+}
+
+/* Reset básico + tipografia geral */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+    background-color: #f8f9fa;
+    line-height: 1.6;
+}
+
+/* Cabeçalho / Top bar com logo e indicadores */
+.top-bar {
+    background-color: white;
+    padding: 15px 0;
+    border-bottom: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.logo-img {
+    height: 80px;
+    width: auto;
+}
+
+.site-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--verde-primario);
+    margin: 0;
+}
+
+.status-dots {
+    display: flex;
+    gap: 10px;
+}
+
+.dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: var(--verde-primario);
+}
+
+/* Navbar */
+.navbar {
+    background-color: white !important;
+    padding: 0.5rem 1rem;
+    border-bottom: 3px solid var(--verde-primario);
+}
+
+.navbar-toggler {
+    border: none;
+    font-size: 1.5rem;
+    color: var(--verde-primario);
+}
+
+.nav-link {
+    color: #333 !important;
+    font-weight: 500;
+    margin: 0 12px;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    color: var(--verde-primario) !important;
+}
+
+/* Seção principal de formulários (cadastro e login) */
+.auth-section {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9f5ee 100%);
+    padding: 40px 20px;
+}
+
+.auth-card {
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 20px;
+    border: 2px solid var(--verde-claro);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    overflow: hidden;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+    padding: 40px 30px;
+    position: relative;
+}
+
+.auth-card::before {
+    content: "";
+    position: absolute;
+    top: -80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 180px;
+    height: 180px;
+    background: url('../img/logoJombaca.png') center/contain no-repeat;
+    opacity: 0.12;
+    pointer-events: none;
+}
+
+.auth-title {
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: var(--verde-primario);
+    margin-bottom: 30px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.form-control {
+    border-radius: 12px;
+    border: 1px solid #ced4da;
+    padding: 14px 18px;
+    font-size: 1.05rem;
+    margin-bottom: 18px;
+    transition: all 0.25s;
+}
+
+.form-control:focus {
+    border-color: var(--verde-primario);
+    box-shadow: 0 0 0 0.25rem rgba(25,135,84,0.25);
+}
+
+.btn-criar, .btn-login {
+    background-color: var(--verde-primario);
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 600;
+    padding: 14px 40px;
+    border-radius: 50px;
+    width: 100%;
+    margin: 20px 0 15px;
+    transition: all 0.3s;
+}
+
+.btn-criar:hover, .btn-login:hover {
+    background-color: var(--verde-escuro);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(25,135,84,0.35);
+}
+
+.auth-link {
+    color: #0d6efd;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-link:hover {
+    text-decoration: underline;
+    color: var(--verde-primario);
+}
+
+/* Checkbox LGPD */
+.form-check-label {
+    font-size: 0.95rem;
+    color: #555;
+}
+
+/* Rodapé */
+footer {
+    background-color: var(--cinza-escuro);
+    color: #ddd;
+    padding: 60px 0 30px;
+}
+
+.footer-logo {
+    height: 100px;
+    margin-bottom: 20px;
+    filter: brightness(1.1);
+}
+
+.footer-title {
+    color: white;
+    font-weight: 600;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+}
+
+.footer-text {
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+
+.contact-item {
+    margin-bottom: 12px;
+    font-size: 1rem;
+}
+
+.contact-icon {
+    color: var(--verde-primario);
+    margin-right: 10px;
+    font-size: 1.3rem;
+}
+
+.footer-bottom {
+    background-color: #2c3137;
+    color: #aaa;
+    text-align: center;
+    padding: 20px 0;
+    margin-top: 40px;
+    font-size: 0.9rem;
+}
+
+/* Animações suaves */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0);   }
+}
+
+.animate-fade-in {
+    animation: fadeInUp 0.9s ease-out forwards;
+    opacity: 0;
+}
+
+.tamanho_minimo{
+    min-height: 100px;
+    max-height: 100px;
+    height: 100px;
+}
+
+/* Responsividade extra (se necessário) */
+@media (max-width: 576px) {
+    .auth-card {
+        padding: 30px 20px;
+        margin: 20px;
+    }
+    
+    .auth-title {
+        font-size: 1.8rem;
+    }
+}

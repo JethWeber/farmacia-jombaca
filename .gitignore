@@ -1,0 +1,66 @@
+# 🔒 BASE DE DADOS (CRÍTICO)
+db/
+*.db
+*.sql
+*.sqlite
+
+# 🔥 MySQL / MariaDB (arquivos internos)
+*.cnf
+*.pem
+*.sock
+ibdata1
+ib_logfile*
+#innodb*
+undo_*
+binlog*
+*.ibd
+
+# 📦 Uploads (conteúdo dinâmico)
+www/uploads/
+
+# ⚠️ Alternativa (se quiser versionar estrutura mas não imagens)
+# www/uploads/*
+# !www/uploads/.gitkeep
+
+# 🐳 Docker
+docker-compose.override.yml
+
+# 🔑 Configurações sensíveis
+.env
+.env.local
+www/config/*.env
+
+# 🧠 IDEs / Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 🐧 Sistema
+.DS_Store
+Thumbs.db
+*.log
+
+# 📁 Arquivos compactados
+*.zip
+*.tar
+*.gz
+*.rar
+
+# 🎥 Ficheiros pesados
+*.mp4
+*.avi
+*.mov
+
+# 📄 Documentos (opcional)
+# (Descomenta se não quiseres versionar docs)
+# doc/*.pdf
+# doc/*.csv
+# doc/*.json
+
+# 🔥 Node (caso uses depois)
+node_modules/
+
+# ⚙️ Cache / temporários
+tmp/
+cache/

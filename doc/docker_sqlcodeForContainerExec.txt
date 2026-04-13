@@ -1,0 +1,1 @@
+docker exec -it farmacia_jombaca_db mysql -u jombaca_user -p jombaca_mainUser2026 -e "USE farmacia_jombaca; SELECT * FROM usuarios;"

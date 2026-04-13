@@ -1,0 +1,76 @@
+ESTRUTURA DA BASE DE DADOS
+
++----------------------------+
+| Tables_in_farmacia_jombaca |
++----------------------------+
+| categorias                 |
+| filiais                    |
+| mensagens                  |
+| produtos                   |
+| reservas                   |
+| servicos                   |
+| usuarios                   |
++----------------------------+
++------------+-----------------------+------------------------------------------------------------------+
+| TABLE_NAME | COLUMN_NAME           | COLUMN_TYPE                                                      |
++------------+-----------------------+------------------------------------------------------------------+
+| categorias | id                    | int                                                              |
+| categorias | imagem                | varchar(255)                                                     |
+| categorias | nome                  | varchar(100)                                                     |
+| categorias | ordem_exibicao        | int                                                              |
+| categorias | slug                  | varchar(100)                                                     |
+| categorias | descricao             | text                                                             |
+| filiais    | telefone              | varchar(20)                                                      |
+| filiais    | principal             | tinyint(1)                                                       |
+| filiais    | nome                  | varchar(100)                                                     |
+| filiais    | imagem                | varchar(255)                                                     |
+| filiais    | endereco              | text                                                             |
+| filiais    | coordenadas           | varchar(100)                                                     |
+| filiais    | bairro                | varchar(100)                                                     |
+| filiais    | id                    | int                                                              |
+| mensagens  | mensagem              | text                                                             |
+| mensagens  | telefone              | varchar(20)                                                      |
+| mensagens  | respondida            | tinyint(1)                                                       |
+| mensagens  | nome                  | varchar(255)                                                     |
+| mensagens  | id                    | int                                                              |
+| mensagens  | email                 | varchar(255)                                                     |
+| mensagens  | data_envio            | timestamp                                                        |
+| mensagens  | assunto               | varchar(150)                                                     |
+| produtos   | preco                 | decimal(10,2)                                                    |
+| produtos   | nome                  | varchar(255)                                                     |
+| produtos   | imagem                | varchar(255)                                                     |
+| produtos   | id                    | int                                                              |
+| produtos   | estoque_atual         | int                                                              |
+| produtos   | disponivel            | tinyint(1)                                                       |
+| produtos   | descricao             | text                                                             |
+| produtos   | data_validade         | date                                                             |
+| produtos   | composicao            | text                                                             |
+| produtos   | categoria_id          | int                                                              |
+| produtos   | em_destaque           | tinyint(1)                                                       |
+| reservas   | telefone_contato      | varchar(20)                                                      |
+| reservas   | usuario_id            | int                                                              |
+| reservas   | status                | enum('nova','contactado','reservado','indisponivel','cancelada') |
+| reservas   | respondida            | tinyint(1)                                                       |
+| reservas   | quantidade_solicitada | int                                                              |
+| reservas   | produto_id            | int                                                              |
+| reservas   | nome_contato          | varchar(255)                                                     |
+| reservas   | id                    | int                                                              |
+| reservas   | filial_preferida_id   | int                                                              |
+| reservas   | email_contato         | varchar(255)                                                     |
+| reservas   | data_solicitacao      | timestamp                                                        |
+| reservas   | observacoes           | text                                                             |
+| servicos   | nome                  | varchar(100)                                                     |
+| servicos   | imagem                | varchar(255)                                                     |
+| servicos   | id                    | int                                                              |
+| servicos   | descricao             | text                                                             |
+| servicos   | ativo                 | tinyint(1)                                                       |
+| usuarios   | data_cadastro         | timestamp                                                        |
+| usuarios   | email                 | varchar(255)                                                     |
+| usuarios   | id                    | int                                                              |
+| usuarios   | lgpd_consent          | tinyint(1)                                                       |
+| usuarios   | nome_completo         | varchar(255)                                                     |
+| usuarios   | role                  | enum('cliente','admin')                                          |
+| usuarios   | senha_hash            | varchar(255)                                                     |
+| usuarios   | telefone              | varchar(20)                                                      |
+| usuarios   | ultimo_acesso         | timestamp                                                        |
++------------+-----------------------+------------------------------------------------------------------+

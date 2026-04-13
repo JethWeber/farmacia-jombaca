@@ -1,0 +1,26 @@
+{
+  "database": "farmacia_jombaca",
+  "tables": {
+    "categorias": {
+      "columns": ["id", "imagem", "nome", "ordem_exibicao", "slug", "descricao"]
+    },
+    "filiais": {
+      "columns": ["id", "nome", "endereco", "bairro", "telefone", "coordenadas", "imagem", "principal"]
+    },
+    "mensagens": {
+      "columns": ["id", "nome", "email", "telefone", "assunto", "mensagem", "data_envio", "respondida"]
+    },
+    "produtos": {
+      "columns": ["id", "nome", "descricao", "composicao", "preco", "estoque_atual", "categoria_id", "imagem", "data_validade", "em_destaque", "disponivel"]
+    },
+    "reservas": {
+      "columns": ["id", "usuario_id", "produto_id", "filial_preferida_id", "quantidade_solicitada", "status", "data_solicitacao", "nome_contato", "email_contato", "telefone_contato", "observacoes", "respondida"]
+    },
+    "servicos": {
+      "columns": ["id", "nome", "descricao", "imagem", "ativo"]
+    },
+    "usuarios": {
+      "columns": ["id", "nome_completo", "email", "senha_hash", "telefone", "role", "data_cadastro", "ultimo_acesso", "lgpd_consent"]
+    }
+  }
+}
