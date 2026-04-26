@@ -24,7 +24,7 @@ Este projeto foi preparado para funcionar em ambiente limpo (fresh clone), com:
 ## Arranque rapido (clone limpo)
 
 ```bash
-git clone <url-do-repositorio>
+git clone https://github.com/JethWeber/farmacia-jombaca.git
 cd farmacia-jombaca
 docker compose up --build -d
 ```
@@ -101,3 +101,4 @@ Se aparecer `Connection refused` logo apos o `up`, aguarde alguns instantes e va
 docker compose logs --tail=120 db
 docker compose logs --tail=120 web
 ```
+
