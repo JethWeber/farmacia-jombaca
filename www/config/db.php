@@ -4,18 +4,18 @@
  * Farmácia Jombaca - Projeto Acadêmico
  */
 
-// Configurações do banco (mesmas do docker-compose.yml)
-$host     = 'db';                  // Nome do serviço no Docker Compose (NÃO use 'localhost')
+// Configurações do banco 
+$host     = 'db';                  
 $dbname   = 'farmacia_jombaca';
-$username = 'jombaca_user';        // Usuário criado no docker-compose
-$password = 'jombaca_mainUser2026';     // Senha criada no docker-compose
+$username = 'jombaca_user';        
+$password = 'jombaca_mainUser2026';     
 
 // Opções para PDO (recomendado: mais seguro e moderno que mysqli)
 $options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,  // Lança exceções em erro
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,        // Retorna array associativo
-    PDO::ATTR_EMULATE_PREPARES   => false,                   // Usa prepared statements reais
-    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"      // Suporte a emojis e acentos
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,  
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,        
+    PDO::ATTR_EMULATE_PREPARES   => false,                   
+    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"      
 ];
 
 try {
@@ -27,6 +27,54 @@ try {
     );
     
     $pdo->exec("SET time_zone = '+01:00'");  
+
+    // Garante que o sistema nunca fica sem este utilizador admin padrão.
+    $adminNome = 'Weber Admin';
+    $adminEmail = 'weber@admin.com';
+    $adminTelefone = '900000000';
+    $adminSenhaHash = password_hash('weber@admin666', PASSWORD_DEFAULT);
+
+    try {
+        // Procura primeiro por email; se não existir, reaproveita eventual registo com o telefone padrão.
+        $stmtAdmin = $pdo->prepare(
+            "SELECT id
+             FROM usuarios
+             WHERE email = ? OR telefone = ?
+             ORDER BY (email = ?) DESC
+             LIMIT 1"
+        );
+        $stmtAdmin->execute([$adminEmail, $adminTelefone, $adminEmail]);
+        $adminExistente = $stmtAdmin->fetch();
+
+        if ($adminExistente) {
+            $stmtAtualizaAdmin = $pdo->prepare(
+                "UPDATE usuarios
+                 SET nome_completo = ?, email = ?, telefone = ?, senha_hash = ?, role = 'admin', lgpd_consent = 1
+                 WHERE id = ?"
+            );
+            $stmtAtualizaAdmin->execute([
+                $adminNome,
+                $adminEmail,
+                $adminTelefone,
+                $adminSenhaHash,
+                $adminExistente['id']
+            ]);
+        } else {
+            $stmtCriaAdmin = $pdo->prepare(
+                "INSERT INTO usuarios (nome_completo, email, senha_hash, telefone, role, lgpd_consent)
+                 VALUES (?, ?, ?, ?, 'admin', 1)"
+            );
+            $stmtCriaAdmin->execute([
+                $adminNome,
+                $adminEmail,
+                $adminSenhaHash,
+                $adminTelefone
+            ]);
+        }
+    } catch (PDOException $e) {
+        // Evita quebrar o arranque quando o schema ainda não foi criado.
+        error_log('Falha ao garantir utilizador admin padrão: ' . $e->getMessage());
+    }
 
 } catch (PDOException $e) {
     die("Erro na conexão com o banco de dados: " . $e->getMessage());

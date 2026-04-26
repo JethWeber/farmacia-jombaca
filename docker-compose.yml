@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: mysql:8.0
@@ -13,7 +11,8 @@ services:
     ports:
       - "3306:3306"                         # Permite acessar o MySQL do host
     volumes:
-      - ./db:/var/lib/mysql                 # Persiste os dados
+      - db_data:/var/lib/mysql              # Persiste os dados
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
     networks:
       - app-network
 
@@ -35,3 +34,6 @@ services:
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  db_data:

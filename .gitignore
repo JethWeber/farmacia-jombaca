@@ -3,6 +3,7 @@ db/
 *.db
 *.sql
 *.sqlite
+!docker/mysql/init/*.sql
 
 # 🔥 MySQL / MariaDB (arquivos internos)
 *.cnf
