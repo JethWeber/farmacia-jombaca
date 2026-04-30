@@ -2,18 +2,17 @@
 ob_start();
 session_start();
 require_once '../config/db.php';
+require_once '../config/auth.php';
+require_once '../config/imagem_helper.php';
 
-// 1. PROTEÇÃO DE ACESSO
-if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true || ($_SESSION['role'] ?? '') !== 'admin') {
-    header('Location: ../login.php?msg=Acesso restrito');
-    exit;
-}
+require_admin_principal_only();
 
 // 2. FUNÇÃO DE UPLOAD (CORRIGIDA)
 function executarUpload($file, $subpasta) {
     if (!isset($file) || $file['error'] !== 0) return '';
     $upload_dir = __DIR__ . "/../uploads/$subpasta/"; 
-    if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
+    if (!is_dir($upload_dir)) mkdir($upload_dir, 0775, true);
+    @chmod($upload_dir, 0775);
     
     // CORREÇÃO AQUI: PATHINFO_EXTENSION
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -112,7 +111,7 @@ $servicos = $pdo->query("SELECT * FROM servicos ORDER BY id DESC")->fetchAll();
                 <tbody>
                     <?php foreach ($servicos as $s): ?>
                     <tr>
-                        <td><img src="../<?= $s['imagem'] ?: 'assets/img/noservice.png' ?>" class="table-img"></td>
+                        <td><img src="../<?= htmlspecialchars(farmacia_imagem_publica($s['imagem'] ?? '')) ?>" class="table-img" alt=""></td>
                         <td><strong><?= htmlspecialchars($s['nome']) ?></strong></td>
                         <td><small class="text-muted"><?= mb_strimwidth(htmlspecialchars($s['descricao']), 0, 60, "...") ?></small></td>
                         <td>

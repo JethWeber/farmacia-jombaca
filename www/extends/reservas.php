@@ -2,12 +2,10 @@
 ob_start();
 session_start();
 require_once '../config/db.php';
+require_once '../config/auth.php';
 
-// 1. PROTEÇÃO DE ACESSO
-if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true || ($_SESSION['role'] ?? '') !== 'admin') {
-    header('Location: ../login.php?msg=Acesso restrito');
-    exit;
-}
+require_admin_any();
+$isPrincipal = is_admin_principal();
 
 // 2. PROCESSAMENTO POST (Atualizar Status ou Eliminar)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -16,15 +14,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($acao === 'atualizar_status') {
         $id = (int)$_POST['id'];
         $novo_status = $_POST['status'];
-        $respondida = ($novo_status === 'nova') ? 0 : 1; 
+        $respondida = ($novo_status === 'nova') ? 0 : 1;
 
-        $stmt = $pdo->prepare("UPDATE reservas SET status = ?, respondida = ? WHERE id = ?");
-        $stmt->execute([$novo_status, $respondida, $id]);
+        $pdo->beginTransaction();
+        try {
+            $stmtCur = $pdo->prepare("SELECT status, produto_id, quantidade_solicitada FROM reservas WHERE id = ? FOR UPDATE");
+            $stmtCur->execute([$id]);
+            $atual = $stmtCur->fetch();
+            if (!$atual) {
+                $pdo->rollBack();
+                header("Location: reservas.php?msg=" . urlencode("Reserva não encontrada."));
+                exit;
+            }
+
+            $statusAnterior = $atual['status'] ?? '';
+            $qtd = (int)$atual['quantidade_solicitada'];
+            $produtoId = (int)$atual['produto_id'];
+
+            /* Baixa de stock ao marcar como entregue; repõe se sair de entregue */
+            if ($novo_status === 'entregue' && $statusAnterior !== 'entregue') {
+                $pdo->prepare("UPDATE produtos SET estoque_atual = GREATEST(0, estoque_atual - ?) WHERE id = ?")
+                    ->execute([$qtd, $produtoId]);
+            } elseif ($statusAnterior === 'entregue' && $novo_status !== 'entregue') {
+                $pdo->prepare("UPDATE produtos SET estoque_atual = estoque_atual + ? WHERE id = ?")
+                    ->execute([$qtd, $produtoId]);
+            }
+
+            $stmt = $pdo->prepare("UPDATE reservas SET status = ?, respondida = ? WHERE id = ?");
+            $stmt->execute([$novo_status, $respondida, $id]);
+            $pdo->commit();
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log('atualizar_status reserva: ' . $e->getMessage());
+            header("Location: reservas.php?msg=" . urlencode("Erro ao atualizar o estado. Tente novamente."));
+            exit;
+        }
+
         header("Location: reservas.php?msg=Status atualizado!");
         exit;
     }
 
     if ($acao === 'excluir_reserva') {
+        if (!$isPrincipal) {
+            header("Location: reservas.php?msg=Apenas o Admin Principal pode eliminar reservas.");
+            exit;
+        }
         $stmt = $pdo->prepare("DELETE FROM reservas WHERE id = ?");
         $stmt->execute([(int)$_POST['id']]);
         header("Location: reservas.php?msg=Reserva removida!");
@@ -59,7 +95,7 @@ $reservas = $pdo->query($query)->fetchAll();
         body { background: #f8f9fa; }
         .status-nova { background-color: #0dcaf0; color: #000; }
         .status-contactado { background-color: #ffc107; color: #000; }
-        /* Alterado de reservado para entregue */
+        .status-reservado { background-color: #0d6efd; color: #fff; }
         .status-entregue { background-color: #198754; color: #fff; } 
         .status-indisponivel { background-color: #6c757d; color: #fff; }
         .status-cancelada { background-color: #dc3545; color: #fff; }
@@ -71,7 +107,7 @@ $reservas = $pdo->query($query)->fetchAll();
 <div class="container-fluid py-5 px-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <a href="../dashboard.php" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left"></i> Painel</a>
+            <a href="<?= htmlspecialchars(painel_voltar_desde_extends()) ?>" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left"></i> Painel</a>
             <h2 class="fw-bold text-success">Gestão de Reservas</h2>
         </div>
     </div>
@@ -106,14 +142,16 @@ $reservas = $pdo->query($query)->fetchAll();
                         </td>
                         <td><?= htmlspecialchars($r['filial_nome'] ?: 'Geral') ?></td>
                         <td>
-                            <span class="badge badge-status status-<?= $r['status'] ?>">
-                                <?= ($r['status'] === 'reservado') ? 'entregue' : $r['status'] ?>
+                            <span class="badge badge-status status-<?= htmlspecialchars((string) ($r['status'] ?? 'nova')) ?>">
+                                <?= htmlspecialchars((string) ($r['status'] ?? 'nova')) ?>
                             </span>
                         </td>
                         <td class="text-end">
                             <button class="btn btn-sm btn-dark" onclick='verDetalhes(<?= json_encode($r) ?>)'><i class="bi bi-eye"></i></button>
                             <button class="btn btn-sm btn-primary" onclick='alterarStatus(<?= $r['id'] ?>, "<?= $r['status'] ?>")'><i class="bi bi-arrow-repeat"></i></button>
-                            <button class="btn btn-sm btn-danger" onclick="confirmarExclusao(<?= $r['id'] ?>)"><i class="bi bi-trash"></i></button>
+                            <?php if ($isPrincipal): ?>
+                                <button class="btn btn-sm btn-danger" onclick="confirmarExclusao(<?= $r['id'] ?>)"><i class="bi bi-trash"></i></button>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -136,6 +174,7 @@ $reservas = $pdo->query($query)->fetchAll();
                 <select name="status" id="select_status" class="form-select">
                     <option value="nova">Nova</option>
                     <option value="contactado">Contactado</option>
+                    <option value="reservado">Reservado</option>
                     <option value="entregue">Entregue</option>
                     <option value="indisponivel">Indisponível</option>
                     <option value="cancelada">Cancelada</option>

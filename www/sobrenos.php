@@ -111,14 +111,16 @@ $nome_usuario = $logado ? $_SESSION['nome'] : 'Visitante';
         </div>
     </div>
 
-    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom border-success border-3 sticky-top shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-light site-main-navbar bg-white border-bottom border-success border-3 sticky-top shadow-sm">
         <div class="container">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+            <a class="navbar-brand py-1 me-2 flex-shrink-0 d-lg-none" href="index.php" title="Farmácia Jombaca">
+                <img src="assets/img/logoJombaca.png" alt="Farmácia Jombaca" height="38" style="max-height:38px;width:auto;">
+            </a>
+            <button class="navbar-toggler ms-auto ms-lg-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Alternar navegação">
                 <i class="bi bi-list fs-3 text-success"></i>
             </button>
-
-            <div class="collapse navbar-collapse" id="navbarMain">
-                <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+            <div class="collapse navbar-collapse flex-grow-1 justify-content-lg-between align-items-lg-center" id="navbarMain">
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0 mt-2 mt-lg-0 align-items-lg-center">
                     <li class="nav-item"><a class="nav-link px-3" href="index.php">Início</a></li>
                     <li class="nav-item"><a class="nav-link px-3" href="produtos.php">Produtos</a></li>
                     <li class="nav-item"><a class="nav-link px-3" href="servicos.php">Serviços</a></li>
@@ -126,10 +128,10 @@ $nome_usuario = $logado ? $_SESSION['nome'] : 'Visitante';
                     <li class="nav-item"><a class="nav-link px-3" href="contacto.php">Contactos</a></li>
                     <li class="nav-item"><a class="nav-link px-3 active fw-bold" href="sobrenos.php">Sobre Nós</a></li>
                 </ul>
-
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center gap-2 gap-lg-3 mt-2 mt-lg-0 pb-2 pb-lg-0 navbar-site-authbar">
                     <?php if ($logado): ?>
                         <span class="text-success fw-medium small"><i class="bi bi-person-circle me-1"></i> <?= htmlspecialchars($nome_usuario) ?></span>
+                        <a href="minhas_reservas.php" class="btn btn-sm btn-outline-success">Minhas Reservas</a>
                         <a href="logout.php" class="btn btn-sm btn-outline-danger">Sair</a>
                     <?php else: ?>
                         <a href="login.php" class="btn btn-outline-success btn-sm">Login</a>

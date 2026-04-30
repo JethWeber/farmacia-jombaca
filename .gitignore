@@ -17,7 +17,12 @@ binlog*
 *.ibd
 
 # 📦 Uploads (conteúdo dinâmico)
-www/uploads/
+www/uploads/*
+!www/uploads/.gitkeep
+!www/uploads/produtos/.gitkeep
+!www/uploads/categorias/.gitkeep
+!www/uploads/filiais/.gitkeep
+!www/uploads/servicos/.gitkeep
 
 # ⚠️ Alternativa (se quiser versionar estrutura mas não imagens)
 # www/uploads/*

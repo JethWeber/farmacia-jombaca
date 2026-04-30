@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360" role="img" aria-label="Sem imagem do produto">
+  <defs>
+    <linearGradient id="pj" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#20c997"/>
+      <stop offset="55%" style="stop-color:#198754"/>
+      <stop offset="100%" style="stop-color:#0f5132"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="360" fill="url(#pj)"/>
+  <text x="240" y="168" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif" font-size="20" font-weight="700" opacity="0.95">Farmácia Jombaca</text>
+  <text x="240" y="198" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif" font-size="14" opacity="0.85">Imagem não disponível</text>
+</svg>

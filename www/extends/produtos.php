@@ -2,26 +2,41 @@
 ob_start();
 session_start();
 require_once '../config/db.php';
+require_once '../config/auth.php';
+require_once '../config/imagem_helper.php';
 
-// 1. PROTEÇÃO DE ACESSO
-if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true || ($_SESSION['role'] ?? '') !== 'admin') {
-    header('Location: ../login.php?msg=Acesso restrito');
-    exit;
-}
+require_admin_any();
+$isPrincipal = is_admin_principal();
 
-// 2. FUNÇÃO DE UPLOAD (Ajustada para o caminho correto das subpastas)
-function executarUpload($file, $subpasta) {
-    if (!isset($file) || $file['error'] !== 0) return '';
-    $upload_dir = __DIR__ . "/../uploads/$subpasta/"; 
-    if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-    
-    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    $novo_nome = time() . '_' . uniqid() . '.' . $ext;
-    
-    if (move_uploaded_file($file['tmp_name'], $upload_dir . $novo_nome)) {
-        return "uploads/$subpasta/$novo_nome";
+function executarUpload(array $file, string $subpasta): string
+{
+    if (!isset($file['error']) || (int) $file['error'] !== UPLOAD_ERR_OK) {
+        return '';
     }
-    return '';
+    $upload_dir = dirname(__DIR__) . '/uploads/' . $subpasta . '/';
+    if (!is_dir($upload_dir) && !@mkdir($upload_dir, 0775, true)) {
+        error_log('Upload: não foi possível criar ' . $upload_dir);
+        return '';
+    }
+    @chmod($upload_dir, 0775);
+    if (!is_writable($upload_dir)) {
+        error_log('Upload: diretório sem escrita ' . $upload_dir);
+        return '';
+    }
+
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
+        return '';
+    }
+    $novo_nome = time() . '_' . uniqid('', true) . '.' . $ext;
+    $dest = $upload_dir . $novo_nome;
+    if (!@move_uploaded_file($file['tmp_name'], $dest)) {
+        error_log('Upload: move_uploaded_file falhou para ' . $dest);
+        return '';
+    }
+    @chmod($dest, 0644);
+
+    return 'uploads/' . $subpasta . '/' . $novo_nome;
 }
 
 // 3. PROCESSAMENTO DE AÇÕES (POST)
@@ -30,6 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // CADASTRAR OU EDITAR PRODUTO
     if ($acao === 'salvar_produto') {
+        if (!$isPrincipal) {
+            header("Location: produtos.php?msg=Apenas o Admin Principal pode cadastrar ou editar produtos.");
+            exit;
+        }
         $id = $_POST['id'] ?? '';
         $nome = $_POST['nome'];
         $cat_id = (int)$_POST['categoria_id'];
@@ -43,8 +62,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Lógica de Imagem
         $img_path = $_POST['img_atual'] ?? '';
-        if (isset($_FILES['imagem']) && $_FILES['imagem']['error'] === 0) {
-            $img_path = executarUpload($_FILES['imagem'], 'produtos');
+        if (isset($_FILES['imagem']) && (int) $_FILES['imagem']['error'] === UPLOAD_ERR_OK) {
+            $nova = executarUpload($_FILES['imagem'], 'produtos');
+            if ($nova !== '') {
+                $img_path = $nova;
+            } else {
+                header('Location: produtos.php?msg=' . urlencode('Não foi possível gravar a imagem. Confirme permissões em uploads/produtos e tamanho máx. 16MB.'));
+                exit;
+            }
+        } elseif (isset($_FILES['imagem']['error']) && (int) $_FILES['imagem']['error'] !== UPLOAD_ERR_NO_FILE) {
+            header('Location: produtos.php?msg=' . urlencode('Erro no envio da imagem (código ' . (int) $_FILES['imagem']['error'] . ').'));
+            exit;
         }
 
         if ($id) { // UPDATE
@@ -62,6 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // EXCLUIR PRODUTO
     if ($acao === 'excluir_produto') {
+        if (!$isPrincipal) {
+            header("Location: produtos.php?msg=Apenas o Admin Principal pode excluir produtos.");
+            exit;
+        }
         $stmt = $pdo->prepare("DELETE FROM produtos WHERE id = ?");
         $stmt->execute([(int)$_POST['id']]);
         header("Location: produtos.php?msg=Produto removido!");
@@ -93,10 +125,12 @@ $categorias = $pdo->query("SELECT id, nome FROM categorias ORDER BY nome ASC")->
 <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <a href="../dashboard.php" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left"></i> Voltar</a>
+            <a href="<?= htmlspecialchars(painel_voltar_desde_extends()) ?>" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left"></i> Voltar</a>
             <h2 class="fw-bold text-success">Gestão de Produtos</h2>
         </div>
-        <button class="btn btn-success" onclick="abrirModalCadastro()"><i class="bi bi-plus-lg"></i> Novo Produto</button>
+        <?php if ($isPrincipal): ?>
+            <button class="btn btn-success" onclick="abrirModalCadastro()"><i class="bi bi-plus-lg"></i> Novo Produto</button>
+        <?php endif; ?>
     </div>
 
     <div class="card shadow-sm border-0 mb-4">
@@ -123,14 +157,18 @@ $categorias = $pdo->query("SELECT id, nome FROM categorias ORDER BY nome ASC")->
                     <?php foreach ($produtos as $p): ?>
                     <tr>
                         <td>#<?= $p['id'] ?></td>
-                        <td><img src="../<?= $p['imagem'] ?: 'assets/img/noproduct.png' ?>" class="table-img"></td>
+                        <td><img src="../<?= htmlspecialchars(farmacia_imagem_publica($p['imagem'] ?? '')) ?>" class="table-img" alt=""></td>
                         <td><strong><?= htmlspecialchars($p['nome']) ?></strong></td>
                         <td><span class="badge bg-info text-dark"><?= htmlspecialchars($p['cat_nome'] ?: 'Sem Categoria') ?></span></td>
                         <td><?= number_format($p['preco'], 2, ',', '.') ?> Kz</td>
                         <td><span class="badge bg-<?= $p['estoque_atual'] > 5 ? 'success' : 'danger' ?>"><?= $p['estoque_atual'] ?></span></td>
                         <td class="text-end">
-                            <button class="btn btn-sm btn-warning" onclick='editarProduto(<?= json_encode($p) ?>)'><i class="bi bi-pencil"></i></button>
-                            <button class="btn btn-sm btn-danger" onclick="confirmarExclusao(<?= $p['id'] ?>)"><i class="bi bi-trash"></i></button>
+                            <?php if ($isPrincipal): ?>
+                                <button class="btn btn-sm btn-warning" onclick='editarProduto(<?= json_encode($p) ?>)'><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-sm btn-danger" onclick="confirmarExclusao(<?= $p['id'] ?>)"><i class="bi bi-trash"></i></button>
+                            <?php else: ?>
+                                <span class="badge bg-secondary">Somente consulta</span>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -140,6 +178,7 @@ $categorias = $pdo->query("SELECT id, nome FROM categorias ORDER BY nome ASC")->
     </div>
 </div>
 
+<?php if ($isPrincipal): ?>
 <div class="modal fade" id="modalProduto" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <form class="modal-content" method="POST" enctype="multipart/form-data">
@@ -208,17 +247,20 @@ $categorias = $pdo->query("SELECT id, nome FROM categorias ORDER BY nome ASC")->
         </form>
     </div>
 </div>
+<?php endif; ?>
 
 <script src="../assets/js/bootstrap.bundle.min.js"></script>
 <script>
-    const modalProduto = new bootstrap.Modal(document.getElementById('modalProduto'));
+    const modalProdutoEl = document.getElementById('modalProduto');
+    const modalProduto = modalProdutoEl ? new bootstrap.Modal(modalProdutoEl) : null;
 
     function abrirModalCadastro() {
         document.getElementById('tituloModal').innerText = "Novo Produto";
         document.getElementById('prod_id').value = "";
         document.getElementById('prod_img_atual').value = "";
-        document.querySelector('form').reset();
-        modalProduto.show();
+        const f = document.querySelector('#modalProduto form');
+        if (f) f.reset();
+        if (modalProduto) modalProduto.show();
     }
 
     function editarProduto(p) {
@@ -234,7 +276,7 @@ $categorias = $pdo->query("SELECT id, nome FROM categorias ORDER BY nome ASC")->
         document.getElementById('prod_img_atual').value = p.imagem;
         document.getElementById('prod_destaque').checked = p.em_destaque == 1;
         document.getElementById('prod_disponivel').checked = p.disponivel == 1;
-        modalProduto.show();
+        if (modalProduto) modalProduto.show();
     }
 
     function confirmarExclusao(id) {

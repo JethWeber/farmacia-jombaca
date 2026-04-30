@@ -170,10 +170,81 @@ CREATE TABLE `usuarios` (
   `data_cadastro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `lgpd_consent` tinyint(1) DEFAULT '0',
   `role` enum('cliente','admin') DEFAULT 'cliente',
+  `perfil_interno` enum('admin_principal','admin_secundario','funcionario') DEFAULT NULL,
   `ultimo_acesso` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `telefone` (`telefone`)
 ) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `fornecedores`
+--
+
+DROP TABLE IF EXISTS `fornecedores`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `fornecedores` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `nome` varchar(150) NOT NULL,
+  `telefone` varchar(20) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `endereco` text,
+  `observacoes` text,
+  `ativo` tinyint(1) DEFAULT '1',
+  `data_cadastro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `vendas`
+--
+
+DROP TABLE IF EXISTS `vendas`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `vendas` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `produto_id` int NOT NULL,
+  `usuario_id` int DEFAULT NULL,
+  `quantidade` int NOT NULL,
+  `preco_unitario` decimal(10,2) NOT NULL,
+  `subtotal` decimal(10,2) NOT NULL,
+  `categoria_id` int DEFAULT NULL,
+  `data_venda` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `produto_id` (`produto_id`),
+  KEY `usuario_id` (`usuario_id`),
+  KEY `categoria_id` (`categoria_id`),
+  CONSTRAINT `vendas_ibfk_1` FOREIGN KEY (`produto_id`) REFERENCES `produtos` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `vendas_ibfk_2` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `vendas_ibfk_3` FOREIGN KEY (`categoria_id`) REFERENCES `categorias` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `pedidos_recuperacao`
+--
+
+DROP TABLE IF EXISTS `pedidos_recuperacao`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `pedidos_recuperacao` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `usuario_id` int NOT NULL,
+  `status` enum('pendente','atendido','recusado') DEFAULT 'pendente',
+  `mensagem` text,
+  `resolvido_por` int DEFAULT NULL,
+  `senha_temporaria` varchar(255) DEFAULT NULL,
+  `data_pedido` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `data_resolucao` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `usuario_id` (`usuario_id`),
+  KEY `resolvido_por` (`resolvido_por`),
+  CONSTRAINT `pedidos_recuperacao_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `pedidos_recuperacao_ibfk_2` FOREIGN KEY (`resolvido_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --

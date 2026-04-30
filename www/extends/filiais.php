@@ -2,18 +2,17 @@
 ob_start();
 session_start();
 require_once '../config/db.php';
+require_once '../config/auth.php';
+require_once '../config/imagem_helper.php';
 
-// 1. PROTEÇÃO DE ACESSO
-if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true || ($_SESSION['role'] ?? '') !== 'admin') {
-    header('Location: ../login.php?msg=Acesso restrito');
-    exit;
-}
+require_admin_principal_only();
 
 // 2. FUNÇÃO DE UPLOAD
 function executarUpload($file, $subpasta) {
     if (!isset($file) || $file['error'] !== 0) return '';
     $upload_dir = __DIR__ . "/../uploads/$subpasta/"; 
-    if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
+    if (!is_dir($upload_dir)) mkdir($upload_dir, 0775, true);
+    @chmod($upload_dir, 0775);
     
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     $novo_nome = time() . '_' . uniqid() . '.' . $ext;
@@ -118,7 +117,7 @@ $filiais = $pdo->query("SELECT * FROM filiais ORDER BY principal DESC, nome ASC"
                 <tbody>
                     <?php foreach ($filiais as $f): ?>
                     <tr>
-                        <td><img src="../<?= $f['imagem'] ?: 'assets/img/nophoto.png' ?>" class="table-img"></td>
+                        <td><img src="../<?= htmlspecialchars(farmacia_imagem_publica($f['imagem'] ?? '', 'assets/img/faxada01.jpeg')) ?>" class="table-img" alt=""></td>
                         <td>
                             <strong><?= htmlspecialchars($f['nome']) ?></strong>
                             <?php if($f['principal']): ?> <span class="badge badge-sede">SEDE</span> <?php endif; ?>

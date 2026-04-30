@@ -1,104 +1,86 @@
-# Farmacia Jombaca
+# Farmácia Jombaca
 
-Aplicacao web para gestao e operacao da Farmacia Jombaca, executada com PHP + MySQL em ambiente Docker.
+Aplicação web em PHP e MySQL para gestão da farmácia, pensada para **clone limpo** do repositório e arranque com Docker.
 
-## Visao geral
+## Pré-requisitos
 
-Este projeto foi preparado para funcionar em ambiente limpo (fresh clone), com:
+- Docker e plugin **Docker Compose** (`docker compose`)
 
-- bootstrap automatico do schema da base de dados;
-- criacao/garantia automatica de utilizador administrador padrao;
-- stack completa orquestrada por `docker compose`.
-
-## Stack tecnica
-
-- PHP 8.2 + Apache
-- MySQL 8.0
-- Docker Compose
-
-## Pre-requisitos
-
-- Docker instalado e em execucao
-- Docker Compose (comando `docker compose`)
-
-## Arranque rapido (clone limpo)
+## Arranque rápido (outro PC / GitHub)
 
 ```bash
-git clone https://github.com/JethWeber/farmacia-jombaca.git
+git clone <url-do-repositório> farmacia-jombaca
 cd farmacia-jombaca
+cp .env.example .env   # opcional: credenciais alinhadas com o MySQL
 docker compose up --build -d
 ```
 
-> Nota: no primeiro arranque, o MySQL pode demorar alguns minutos para inicializar totalmente e executar os scripts de bootstrap.
+Aguarde o MySQL concluir o primeiro arranque (pode levar 1–3 minutos). Depois:
 
-## Endpoints locais
-
-- Aplicacao: [http://localhost:8080](http://localhost:8080)
+- Site: [http://localhost:8080](http://localhost:8080)
 - Login: [http://localhost:8080/login.php](http://localhost:8080/login.php)
-- MySQL (host): `localhost:3306`
 
-## Administrador padrao garantido
+### Primeiro administrador
 
-O sistema garante que a plataforma nunca fica sem administrador. O utilizador abaixo e criado/atualizado automaticamente:
+Na **primeira criação** do volume da base de dados, o script `docker/mysql/init/002_admin_seed.sql` cria um único utilizador de equipa interna (não há seed de produtos nem clientes de demonstração):
 
-- Nome: `Weber Admin`
-- Email: `weber@admin.com`
-- Telefone: `900000000`
-- Senha: `weber@admin666`
-- Perfil: `admin`
+| Campo    | Valor            |
+|----------|------------------|
+| Telefone | `900000000`      |
+| Senha    | `weber@admin666` |
+| Perfil   | Admin principal  |
 
-## Verificacao pos-arranque
+Altere a palavra-passe após o primeiro acesso (Gestão de utilizadores, como admin principal).
 
-### 1) Confirmar estado dos servicos
+### Migrações automáticas (ALTER / tabelas novas)
+
+Em **cada pedido HTTP** que carrega `www/config/db.php`, executam-se migrações idempotentes (colunas em falta, tabelas auxiliares como `vendas`, `pedidos_recuperacao`, etc.). Não é necessário correr scripts SQL manuais após o clone, além do bootstrap inicial do MySQL em `docker/mysql/init/`.
+
+## Variáveis de ambiente
+
+- Ficheiro **`.env.example`**: modelo. Copie para **`.env`** na raiz do projeto se quiser personalizar credenciais.
+- O serviço **web** recebe `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
+- O serviço **db** usa `MYSQL_*` e os mesmos nomes de base/utilizador se definir `DB_*` no `.env` (substituição do Compose).
+
+## Perfis no painel
+
+| Perfil              | Acesso |
+|---------------------|--------|
+| **Admin principal** | Painel completo: utilizadores, categorias, filiais, produtos, financeiro, etc. |
+| **Admin secundário**| Painel sem funções exclusivas do principal (ex.: gestão de utilizadores). |
+| **Funcionário**     | Painel dedicado: validade (vencidos + 3 meses), consulta de stock/produtos, vendas, relatório dia/mês, estado das reservas. **Não** cadastra produtos nem outros administradores. |
+
+O login com perfil **funcionário** abre `dashboard_funcionario.php`.
+
+## Uploads de imagens
+
+- Pastas versionadas com `.gitkeep` em `www/uploads/...`.
+- No arranque do contentor **web**, o *entrypoint* cria as pastas e ajusta permissões para o Apache gravar ficheiros enviados.
+- Limite de upload PHP: **16 MB** (ver `php/Dockerfile`).
+- No site público, imagens em falta ou caminhos inválidos usam um **placeholder** (`assets/img/placeholder-produto.svg`) e fundo em degradê nas grelhas de produtos.
+
+## Comandos úteis
 
 ```bash
 docker compose ps
-```
-
-### 2) Validar schema e admin padrao
-
-```bash
-docker compose exec db mysql -uroot -pjombacaRoot farmacia_jombaca -e "SHOW TABLES; SELECT id,nome_completo,email,telefone,role FROM usuarios WHERE email='weber@admin.com' OR telefone='900000000';"
-```
-
-## Operacao
-
-### Parar os servicos
-
-```bash
+docker compose logs --tail=80 web
+docker compose logs --tail=80 db
 docker compose down
+docker compose down --volumes   # apaga dados da BD no volume
 ```
 
-### Reiniciar os servicos
+## Estrutura relevante
 
-```bash
-docker compose up -d
-```
+| Caminho | Descrição |
+|---------|-----------|
+| `docker-compose.yml` | Serviços `web` e `db` |
+| `docker/mysql/init/001_schema.sql` | Schema inicial |
+| `docker/mysql/init/002_admin_seed.sql` | Apenas o admin padrão (idempotente) |
+| `php/Dockerfile` | PHP 8.2 Apache + limites de upload |
+| `php/docker-entrypoint.sh` | Permissões das pastas `uploads` |
+| `www/config/db.php` | PDO + migrações em runtime |
+| `www/config/imagem_helper.php` | URLs seguras para imagens de produto |
 
-### Reset total da base (ambiente limpo)
+## Licença / uso
 
-```bash
-docker compose down --volumes --remove-orphans
-docker compose up --build -d
-```
-
-## Estrutura importante
-
-- `docker-compose.yml`: definicao dos servicos `web` e `db`
-- `docker/mysql/init/001_schema.sql`: schema inicial da base de dados
-- `docker/mysql/init/002_admin_seed.sql`: seed idempotente do admin padrao
-- `www/config/db.php`: conexao PDO e garantia de admin em runtime
-
-## Troubleshooting
-
-### Erro de conexao com MySQL no primeiro boot
-
-Se aparecer `Connection refused` logo apos o `up`, aguarde alguns instantes e valide novamente. O primeiro bootstrap do MySQL pode ser mais lento.
-
-### Confirmar logs dos servicos
-
-```bash
-docker compose logs --tail=120 db
-docker compose logs --tail=120 web
-```
-
+Projeto académico / demonstração — adapte credenciais e segurança antes de produção.

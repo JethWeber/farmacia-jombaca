@@ -2,12 +2,9 @@
 ob_start();
 session_start();
 require_once '../config/db.php';
+require_once '../config/auth.php';
 
-// 1. PROTEÇÃO DE ACESSO
-if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true || ($_SESSION['role'] ?? '') !== 'admin') {
-    header('Location: ../login.php?msg=Acesso restrito');
-    exit;
-}
+require_admin_principal_only();
 
 $meu_id = $_SESSION['usuario_id'] ?? 0;
 
@@ -20,25 +17,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nome_completo = $_POST['nome_completo'];
         $email         = $_POST['email'];
         $telefone      = $_POST['telefone'];
-        $role          = $_POST['role'];
+        $role          = $_POST['role'] ?? 'cliente';
+        $perfilInterno = $_POST['perfil_interno'] ?? null;
         $senha         = $_POST['senha'];
+
+        $jaPrincipal = false;
+        if ($id !== '' && $id !== null) {
+            $stEx = $pdo->prepare('SELECT perfil_interno FROM usuarios WHERE id = ?');
+            $stEx->execute([(int) $id]);
+            $ex = $stEx->fetch();
+            $jaPrincipal = (($ex['perfil_interno'] ?? '') === 'admin_principal');
+        }
+        if ($jaPrincipal) {
+            $perfilInterno = 'admin_principal';
+            $role = 'admin';
+        } elseif ($role !== 'admin') {
+            $perfilInterno = null;
+        } else {
+            $allowedPerfis = ['admin_secundario', 'funcionario'];
+            if (!in_array($perfilInterno, $allowedPerfis, true)) {
+                $perfilInterno = 'funcionario';
+            }
+        }
 
         if ($id) { // UPDATE
             if (!empty($senha)) {
                 // Atualiza com nova senha
                 $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare("UPDATE usuarios SET nome_completo=?, email=?, telefone=?, role=?, senha_hash=? WHERE id=?");
-                $stmt->execute([$nome_completo, $email, $telefone, $role, $senha_hash, $id]);
+                $stmt = $pdo->prepare("UPDATE usuarios SET nome_completo=?, email=?, telefone=?, role=?, perfil_interno=?, senha_hash=? WHERE id=?");
+                $stmt->execute([$nome_completo, $email, $telefone, $role, $perfilInterno, $senha_hash, $id]);
             } else {
                 // Atualiza sem mexer na senha
-                $stmt = $pdo->prepare("UPDATE usuarios SET nome_completo=?, email=?, telefone=?, role=? WHERE id=?");
-                $stmt->execute([$nome_completo, $email, $telefone, $role, $id]);
+                $stmt = $pdo->prepare("UPDATE usuarios SET nome_completo=?, email=?, telefone=?, role=?, perfil_interno=? WHERE id=?");
+                $stmt->execute([$nome_completo, $email, $telefone, $role, $perfilInterno, $id]);
             }
             $msg = "Dados do utilizador atualizados!";
         } else { // INSERT
             $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("INSERT INTO usuarios (nome_completo, email, senha_hash, telefone, role, lgpd_consent) VALUES (?, ?, ?, ?, ?, 1)");
-            $stmt->execute([$nome_completo, $email, $senha_hash, $telefone, $role]);
+            $stmt = $pdo->prepare("INSERT INTO usuarios (nome_completo, email, senha_hash, telefone, role, perfil_interno, lgpd_consent) VALUES (?, ?, ?, ?, ?, ?, 1)");
+            $stmt->execute([$nome_completo, $email, $senha_hash, $telefone, $role, $perfilInterno]);
             $msg = "Novo utilizador criado com sucesso!";
         }
         header("Location: usuarios.php?msg=" . urlencode($msg));
@@ -61,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // 3. BUSCA DE DADOS
-$usuarios = $pdo->query("SELECT id, nome_completo, email, telefone, role FROM usuarios ORDER BY nome_completo ASC")->fetchAll();
+$usuarios = $pdo->query("SELECT id, nome_completo, email, telefone, role, perfil_interno FROM usuarios ORDER BY nome_completo ASC")->fetchAll();
 ?>
 
 <!DOCTYPE html>
@@ -117,9 +134,20 @@ $usuarios = $pdo->query("SELECT id, nome_completo, email, telefone, role FROM us
                         <td><?= htmlspecialchars($u['email']) ?></td>
                         <td><?= htmlspecialchars($u['telefone'] ?: '---') ?></td>
                         <td>
-                            <span class="badge badge-role bg-<?= $u['role'] === 'admin' ? 'danger' : 'primary' ?>">
-                                <?= ucfirst($u['role']) ?>
-                            </span>
+                            <?php
+                            if ($u['role'] === 'admin') {
+                                $pl = $u['perfil_interno'] ?? '';
+                                $map = [
+                                    'admin_principal' => ['Admin principal', 'danger'],
+                                    'admin_secundario' => ['Admin secundário', 'warning'],
+                                    'funcionario' => ['Funcionário', 'info'],
+                                ];
+                                [$txt, $cls] = $map[$pl] ?? ['Equipa interna', 'secondary'];
+                                echo '<span class="badge badge-role bg-' . htmlspecialchars($cls) . '">' . htmlspecialchars($txt) . '</span>';
+                            } else {
+                                echo '<span class="badge badge-role bg-primary">Cliente</span>';
+                            }
+                            ?>
                         </td>
                         <td class="text-end">
                             <button class="btn btn-sm btn-warning" onclick='editarUsuario(<?= json_encode($u) ?>)'><i class="bi bi-pencil"></i></button>
@@ -161,9 +189,18 @@ $usuarios = $pdo->query("SELECT id, nome_completo, email, telefone, role FROM us
                 <div class="col-md-6">
                     <label class="form-label">Nível de Acesso</label>
                     <select name="role" id="user_role" class="form-select">
-                        <option value="cliente">Cliente</option>
-                        <option value="admin">Administrador</option>
+                        <option value="cliente">Cliente (site)</option>
+                        <option value="admin">Equipa interna (painel)</option>
                     </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Perfil no painel</label>
+                    <select name="perfil_interno" id="user_perfil" class="form-select">
+                        <option value="">—</option>
+                        <option value="admin_secundario">Administrador secundário</option>
+                        <option value="funcionario">Funcionário (vendas, stock consulta, reservas, validade)</option>
+                    </select>
+                    <small class="text-muted">Só aplica quando o nível é «Equipa interna». Não é possível criar outro admin principal aqui.</small>
                 </div>
                 <div class="col-12">
                     <label class="form-label" id="labelSenha">Senha de Acesso</label>
@@ -183,12 +220,21 @@ $usuarios = $pdo->query("SELECT id, nome_completo, email, telefone, role FROM us
 <script>
     const modalUsuario = new bootstrap.Modal(document.getElementById('modalUsuario'));
 
+    function syncPerfilInterno() {
+        const role = document.getElementById('user_role').value;
+        const box = document.getElementById('user_perfil');
+        box.disabled = (role !== 'admin');
+        if (role !== 'admin') { box.value = ''; }
+    }
+    document.getElementById('user_role').addEventListener('change', syncPerfilInterno);
+
     function abrirModalCadastro() {
         document.getElementById('tituloModal').innerText = "Novo Utilizador";
         document.getElementById('user_id').value = "";
         document.getElementById('user_senha').required = true;
         document.getElementById('hintSenha').style.display = "none";
-        document.querySelector('form').reset();
+        document.getElementById('modalUsuario').querySelector('form').reset();
+        syncPerfilInterno();
         modalUsuario.show();
     }
 
@@ -199,8 +245,10 @@ $usuarios = $pdo->query("SELECT id, nome_completo, email, telefone, role FROM us
         document.getElementById('user_email').value = u.email;
         document.getElementById('user_tel').value = u.telefone;
         document.getElementById('user_role').value = u.role;
+        document.getElementById('user_perfil').value = u.perfil_interno || '';
         document.getElementById('user_senha').required = false;
         document.getElementById('hintSenha').style.display = "block";
+        syncPerfilInterno();
         modalUsuario.show();
     }
 
@@ -231,6 +279,7 @@ $usuarios = $pdo->query("SELECT id, nome_completo, email, telefone, role FROM us
             trs[i].style.display = texto.includes(input) ? "" : "none";
         }
     }
+    syncPerfilInterno();
 </script>
 
 <?php if(isset($_GET['msg'])): ?>

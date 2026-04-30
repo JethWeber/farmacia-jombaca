@@ -1,11 +1,14 @@
 <?php
 session_start();
 require_once 'config/db.php';
+require_once 'config/imagem_helper.php';
 
 // Verifica login e pega dados da sessão
 $logado = isset($_SESSION['logado']) && $_SESSION['logado'] === true;
 $nome_usuario = $logado ? $_SESSION['nome'] : '';
 $telefone_usuario = $logado ? ($_SESSION['telefone'] ?? '') : '';
+
+$filiais_reserva = $pdo->query("SELECT id, nome, bairro, endereco FROM filiais ORDER BY principal DESC, nome ASC")->fetchAll();
 
 // Processa reserva (Apenas se logado)
 $mensagem = '';
@@ -13,9 +16,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reservar']) && $logad
     $produto_id = (int)$_POST['produto_id'];
     $qtd = (int)$_POST['quantidade'];
     $usuario_id = $_SESSION['usuario_id'];
+    $filial_pref = isset($_POST['filial_preferida_id']) ? (int)$_POST['filial_preferida_id'] : 0;
+    if ($filial_pref <= 0) {
+        $filial_pref = null;
+    }
 
-    $stmt = $pdo->prepare("INSERT INTO reservas (usuario_id, nome_contato, telefone_contato, produto_id, quantidade_solicitada) VALUES (?, ?, ?, ?, ?)");
-    if ($stmt->execute([$usuario_id, $nome_usuario, $telefone_usuario, $produto_id, $qtd])) {
+    $stmt = $pdo->prepare("INSERT INTO reservas (usuario_id, nome_contato, telefone_contato, produto_id, quantidade_solicitada, filial_preferida_id) VALUES (?, ?, ?, ?, ?, ?)");
+    if ($stmt->execute([$usuario_id, $nome_usuario, $telefone_usuario, $produto_id, $qtd, $filial_pref])) {
         $mensagem = "Reserva de " . htmlspecialchars($_POST['prod_nome_hidden']) . " efetuada com sucesso!";
     }
 }
@@ -40,8 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reservar']) && $logad
         .category-section { margin-bottom: 50px; }
         .category-title { color: #198754; font-weight: 800; border-left: 5px solid #198754; padding-left: 15px; margin-bottom: 25px; }
         
-        .img-wrapper { height: 180px; display: flex; align-items: center; justify-content: center; background: #f9f9f9; border-radius: 15px 15px 0 0; padding: 15px; }
-        .img-wrapper img { max-height: 100%; object-fit: contain; }
+        .img-wrapper {
+            height: 180px; display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(145deg, #e8f5ef 0%, #d1e7dd 35%, #a3cfbb 100%);
+            border-radius: 15px 15px 0 0; padding: 12px;
+        }
+        .img-wrapper img { max-height: 100%; max-width: 100%; object-fit: contain; }
     </style>
 </head>
 <body>
@@ -60,23 +71,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reservar']) && $logad
         </div>
     </div>
 
-    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom border-success border-3 shadow-sm sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-light site-main-navbar bg-white border-bottom border-success border-3 shadow-sm sticky-top">
         <div class="container">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain"><i class="bi bi-list fs-3 text-success"></i></button>
-            <div class="collapse navbar-collapse" id="navbarMain">
-                <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+            <a class="navbar-brand py-1 me-2 flex-shrink-0 d-lg-none" href="index.php" title="Farmácia Jombaca">
+                <img src="assets/img/logoJombaca.png" alt="Farmácia Jombaca" height="38" style="max-height:38px;width:auto;">
+            </a>
+            <button class="navbar-toggler ms-auto ms-lg-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Alternar navegação"><i class="bi bi-list fs-3 text-success"></i></button>
+            <div class="collapse navbar-collapse flex-grow-1 justify-content-lg-between align-items-lg-center" id="navbarMain">
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0 mt-2 mt-lg-0 align-items-lg-center">
                     <li class="nav-item"><a class="nav-link px-3" href="index.php">Início</a></li>
                     <li class="nav-item"><a class="nav-link px-3 active fw-bold" href="produtos.php">Produtos</a></li>
                     <li class="nav-item"><a class="nav-link px-3" href="servicos.php">Serviços</a></li>
                     <li class="nav-item"><a class="nav-link px-3" href="nossos-enderecos.php">Nossos Endereços</a></li>
                     <li class="nav-item"><a class="nav-link px-3" href="contacto.php">Contactos</a></li>
+                    <li class="nav-item"><a class="nav-link px-3" href="sobrenos.php">Sobre Nós</a></li>
                 </ul>
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center gap-2 gap-lg-3 mt-2 mt-lg-0 pb-2 pb-lg-0 navbar-site-authbar">
                     <?php if ($logado): ?>
                         <span class="text-success fw-medium small"><i class="bi bi-person-circle me-1"></i> <?= htmlspecialchars($nome_usuario) ?></span>
+                        <a href="minhas_reservas.php" class="btn btn-sm btn-outline-success">Minhas Reservas</a>
                         <a href="logout.php" class="btn btn-sm btn-outline-danger">Sair</a>
                     <?php else: ?>
                         <a href="login.php" class="btn btn-outline-success btn-sm">Login</a>
+                        <a href="cadastro.php" class="btn btn-success btn-sm">Criar Conta</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -93,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reservar']) && $logad
         <?php if ($mensagem): ?>
             <div class="alert alert-success alert-dismissible fade show rounded-pill px-4 text-center" role="alert">
                 <i class="bi bi-check-circle-fill me-2"></i> <?= $mensagem ?>
+                <div><a href="minhas_reservas.php" class="small">Ver comprovativo da reserva</a></div>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
@@ -115,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reservar']) && $logad
                     <div class="col-6 col-md-4 col-lg-3 product-item" data-name="<?= strtolower(htmlspecialchars($p['nome'])) ?>">
                         <div class="card product-card shadow-sm">
                             <div class="img-wrapper">
-                                <img src="<?= $p['imagem'] ?: 'assets/img/nophoto.png' ?>" alt="<?= htmlspecialchars($p['nome']) ?>">
+                                <img src="<?= htmlspecialchars(farmacia_imagem_publica($p['imagem'] ?? '')) ?>" alt="<?= htmlspecialchars($p['nome']) ?>" loading="lazy" width="200" height="200">
                             </div>
                             <div class="card-body d-flex flex-column p-3 text-center">
                                 <h6 class="fw-bold text-dark mb-2"><?= htmlspecialchars($p['nome']) ?></h6>
@@ -188,6 +206,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reservar']) && $logad
                             <label class="form-label fw-bold small text-muted">Quantidade</label>
                             <input type="number" name="quantidade" class="form-control border-success" value="1" min="1" required>
                         </div>
+                        <?php if (!empty($filiais_reserva)): ?>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted">Filial de levantamento</label>
+                            <select name="filial_preferida_id" class="form-select border-success" required>
+                                <?php foreach ($filiais_reserva as $fl): ?>
+                                    <option value="<?= (int)$fl['id'] ?>"><?= htmlspecialchars($fl['nome']) ?> — <?= htmlspecialchars($fl['bairro'] ?: '') ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <small class="text-muted">Indique onde prefere levantar o produto.</small>
+                        </div>
+                        <?php endif; ?>
                     </div>
                     <div class="modal-footer border-0">
                         <button type="submit" class="btn btn-success w-100 rounded-pill fw-bold py-2">CONFIRMAR E ENVIAR AGORA</button>

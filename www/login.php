@@ -14,20 +14,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $usuario = $stmt->fetch();
 
         if ($usuario && password_verify($senha, $usuario['senha_hash'])) {
-            // --- O REPARO ESTÁ AQUI ---
             $_SESSION['usuario_id'] = $usuario['id'];
             $_SESSION['nome']       = $usuario['nome_completo'];
+            $_SESSION['nome_completo'] = $usuario['nome_completo'];
+            $_SESSION['telefone'] = $usuario['telefone'];
             $_SESSION['logado']     = true;
-            $_SESSION['role']       = $usuario['role']; // Guardamos o enum 'admin' ou 'cliente' na sessão
+            $_SESSION['role']       = $usuario['role'];
+            $_SESSION['perfil_interno'] = $usuario['perfil_interno'] ?? null;
             
-            // Redirecionamento baseado na permissão recém-guardada
             if ($_SESSION['role'] === 'admin') {
-                header('Location: dashboard.php');
+                $pi = $_SESSION['perfil_interno'] ?? '';
+                if ($pi === 'funcionario') {
+                    header('Location: dashboard_funcionario.php');
+                } else {
+                    header('Location: dashboard.php');
+                }
             } else {
                 header('Location: index.php');
             }
             exit;
-            // --------------------------
         } else {
             $erro = 'Dados incorretos.';
         }
@@ -70,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
         <div class="links">
             <p class="text-muted mb-1">Não tem conta? <a href="cadastro.php">Criar agora</a></p>
+            <p class="text-muted mb-1"><a href="forgot_password.php">Esqueci a minha senha</a></p>
             <a href="index.php" class="text-muted small"><i class="bi bi-arrow-left"></i> Voltar ao início</a>
         </div>
     </div>

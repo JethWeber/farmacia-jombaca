@@ -4,10 +4,10 @@ services:
     container_name: farmacia_jombaca_db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: jombacaRoot 
-      MYSQL_DATABASE: farmacia_jombaca
-      MYSQL_USER: jombaca_user
-      MYSQL_PASSWORD: jombaca_mainUser2026  
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-jombacaRoot}
+      MYSQL_DATABASE: ${DB_NAME:-farmacia_jombaca}
+      MYSQL_USER: ${DB_USER:-jombaca_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-jombaca_mainUser2026}
     ports:
       - "3306:3306"                         # Permite acessar o MySQL do host
     volumes:
@@ -24,6 +24,11 @@ services:
     restart: always
     ports:
       - "8080:80"
+    environment:
+      DB_HOST: ${DB_HOST:-db}
+      DB_NAME: ${DB_NAME:-farmacia_jombaca}
+      DB_USER: ${DB_USER:-jombaca_user}
+      DB_PASSWORD: ${DB_PASSWORD:-jombaca_mainUser2026}
     volumes:
       - ./www:/var/www/html
     depends_on:
