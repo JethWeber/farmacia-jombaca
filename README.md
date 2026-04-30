@@ -6,10 +6,10 @@ Aplicação web em PHP e MySQL para gestão da farmácia, pensada para **clone l
 
 - Docker e plugin **Docker Compose** (`docker compose`)
 
-## Arranque rápido (outro PC / GitHub)
+## Arranque rápido
 
 ```bash
-git clone <url-do-repositório> farmacia-jombaca
+git clone https://github.com/JethWeber/farmacia-jombaca.git
 cd farmacia-jombaca
 cp .env.example .env   # opcional: credenciais alinhadas com o MySQL
 docker compose up --build -d
